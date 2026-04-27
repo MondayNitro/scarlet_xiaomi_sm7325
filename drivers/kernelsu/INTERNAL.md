@@ -11,7 +11,7 @@
 ## sucompat
 - tweaked for downstream
 - copy_from_user instead of strncpy_from_user
-- this is faster
+- last word compare, this is faster
 
 ## task_fix_setuid LSM
 - upstream was on this before

@@ -19,7 +19,7 @@
 // it becomes syscall_fn_t sys_call_table[];
 
 static syscall_fn_t armeabi_reboot = NULL;
-static long hook_armeabi_reboot(const struct pt_regs *regs)
+static noinline long hook_armeabi_reboot(const struct pt_regs *regs)
 {
 	int magic1 = (int)regs->regs[0];
 	int magic2 = (int)regs->regs[1];
@@ -31,7 +31,8 @@ static long hook_armeabi_reboot(const struct pt_regs *regs)
 }
 
 static syscall_fn_t armeabi_execve = NULL;
-static long hook_armeabi_execve(const struct pt_regs *regs)
+__attribute__((hot))
+static noinline long hook_armeabi_execve(const struct pt_regs *regs)
 {
 	const char __user **filename = (const char __user **)&regs->regs[0];
 	void ***envp = (void ***)&regs->regs[2];
@@ -41,7 +42,8 @@ static long hook_armeabi_execve(const struct pt_regs *regs)
 }
 
 static syscall_fn_t armeabi_faccessat = NULL;
-static long hook_armeabi_faccessat(const struct pt_regs *regs)
+__attribute__((hot))
+static noinline long hook_armeabi_faccessat(const struct pt_regs *regs)
 {
 	const char __user **filename = (const char __user **)&regs->regs[1];
 
@@ -50,7 +52,8 @@ static long hook_armeabi_faccessat(const struct pt_regs *regs)
 }
 
 static syscall_fn_t armeabi_fstatat64 = NULL;
-static long hook_armeabi_fstatat64(const struct pt_regs *regs)
+__attribute__((hot))
+static noinline long hook_armeabi_fstatat64(const struct pt_regs *regs)
 {
 	const char __user **filename = (const char __user **)&regs->regs[1];
 
@@ -59,7 +62,7 @@ static long hook_armeabi_fstatat64(const struct pt_regs *regs)
 }
 
 static syscall_fn_t armeabi_fstat64 = NULL;
-static long hook_armeabi_fstat64_ret(const struct pt_regs *regs)
+static noinline long hook_armeabi_fstat64_ret(const struct pt_regs *regs)
 {
 	// we handle it like rp
 	unsigned long *fd = (unsigned long *)&regs->regs[0];
@@ -71,7 +74,7 @@ static long hook_armeabi_fstat64_ret(const struct pt_regs *regs)
 }
 
 static syscall_fn_t armeabi_read = NULL;
-static long hook_armeabi_read(const struct pt_regs *regs)
+static noinline long hook_armeabi_read(const struct pt_regs *regs)
 {
 	unsigned int fd = (unsigned int)regs->regs[0];	
 
@@ -82,7 +85,7 @@ static long hook_armeabi_read(const struct pt_regs *regs)
 #else // END OF 4.19+ SYSCALL HANDLERS
 
 static long (*armeabi_reboot)(int magic1, int magic2, unsigned int cmd, void __user *arg) = NULL;
-static long hook_armeabi_reboot(int magic1, int magic2, unsigned int cmd, void __user *arg)
+static noinline long hook_armeabi_reboot(int magic1, int magic2, unsigned int cmd, void __user *arg)
 {
 	ksu_handle_sys_reboot(magic1, magic2, cmd, &arg);
 	return armeabi_reboot(magic1, magic2, cmd, arg);
@@ -91,7 +94,8 @@ static long hook_armeabi_reboot(int magic1, int magic2, unsigned int cmd, void _
 static long (*armeabi_execve)(const char __user * filename,
 				const char __user *const __user * argv,
 				const char __user *const __user * envp) = NULL;
-static long hook_armeabi_execve(const char __user * filename,
+__attribute__((hot))
+static noinline long hook_armeabi_execve(const char __user * filename,
 				const char __user *const __user * argv,
 				const char __user *const __user * envp)
 {
@@ -100,21 +104,23 @@ static long hook_armeabi_execve(const char __user * filename,
 }
 
 static long (*armeabi_faccessat)(int dfd, const char __user * filename, int mode) = NULL;
-static long hook_armeabi_faccessat(int dfd, const char __user * filename, int mode)
+__attribute__((hot))
+static noinline long hook_armeabi_faccessat(int dfd, const char __user * filename, int mode)
 {
 	ksu_handle_faccessat(&dfd, &filename, &mode, NULL);
 	return armeabi_faccessat(dfd, filename, mode);
 }
 
 static long (*armeabi_fstatat64)(int dfd, const char __user * filename, struct stat64 __user * statbuf, int flag) = NULL;
-static long hook_armeabi_fstatat64(int dfd, const char __user * filename, struct stat64 __user * statbuf, int flag)
+__attribute__((hot))
+static noinline long hook_armeabi_fstatat64(int dfd, const char __user * filename, struct stat64 __user * statbuf, int flag)
 {
 	ksu_handle_stat(&dfd, &filename, &flag);
 	return armeabi_fstatat64(dfd, filename, statbuf, flag);
 }
 
 static long (*armeabi_fstat64)(unsigned long fd, struct stat64 __user * statbuf) = NULL;
-static long hook_armeabi_fstat64_ret(unsigned long fd, struct stat64 __user * statbuf)
+static noinline long hook_armeabi_fstat64_ret(unsigned long fd, struct stat64 __user * statbuf)
 {
 	// we handle it like rp
 	long ret = armeabi_fstat64(fd, statbuf);
@@ -123,7 +129,7 @@ static long hook_armeabi_fstat64_ret(unsigned long fd, struct stat64 __user * st
 }
 
 static long (*armeabi_read)(unsigned int fd, char __user *buf, size_t count) = NULL;
-static long hook_armeabi_read(unsigned int fd, char __user *buf, size_t count)
+static noinline long hook_armeabi_read(unsigned int fd, char __user *buf, size_t count)
 {
 	ksu_handle_sys_read_fd(fd);
 	return armeabi_read(fd, buf, count);

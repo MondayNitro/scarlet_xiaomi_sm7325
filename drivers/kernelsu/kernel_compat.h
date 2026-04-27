@@ -106,6 +106,16 @@ static noinline ssize_t ksu_kernel_write_compat(struct file *p, const void *buf,
 #define kernel_write ksu_kernel_write_compat
 #endif // < 4.14
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)
+#define d_inode(dentry) ((dentry)->d_inode)
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0) && defined(CONFIG_ARM64)
+#ifndef TIF_SECCOMP
+#define TIF_SECCOMP		11
+#endif
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
 static inline void *ksu_kvmalloc(size_t size, gfp_t flags)
 {
