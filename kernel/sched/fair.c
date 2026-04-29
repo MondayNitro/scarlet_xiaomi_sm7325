@@ -7656,7 +7656,7 @@ eenv_pd_max_util(struct energy_env *eenv, struct cpumask *pd_cpus,
 				max = max(max, uclamp_eff_value(p, UCLAMP_MAX));
 		}
 
-		cpu_util = sugov_effective_cpu_perf(cpu, cpu_util, min, max);
+		cpu_util = sugov_effective_cpu_perf(cpu, cpu_util, min, max, 0);
 		max_util = max(max_util, cpu_util);
 	}
 

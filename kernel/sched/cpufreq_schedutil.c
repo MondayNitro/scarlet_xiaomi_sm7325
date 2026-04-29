@@ -59,6 +59,7 @@ struct sugov_cpu {
 	u64			last_update;
 
 	unsigned long		util;
+	unsigned long		util_raw;
 	unsigned long		bw_min;
 };
 
@@ -317,10 +318,15 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
  *
  * XXX: Should we provide headroom when the util is decaying?
  */
-static inline unsigned long sugov_apply_dvfs_headroom(unsigned long util, int cpu)
+static inline unsigned long
+sugov_apply_dvfs_headroom(unsigned long util, unsigned long prev_util, int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
 	u64 delay;
+
+	/* Only apply headroom when utilization is growing */
+	if (util <= prev_util)
+		return util;
 
 	/*
 	 * What is the possible worst case scenario for updating util_avg, ctx
@@ -337,13 +343,14 @@ static inline unsigned long sugov_apply_dvfs_headroom(unsigned long util, int cp
 
 unsigned long sugov_effective_cpu_perf(int cpu, unsigned long actual,
 				 unsigned long min,
-				 unsigned long max)
+				 unsigned long max,
+				 unsigned long prev_util)
 {
 	/*
 	 * Speed up/slow down response timee first then apply DVFS headroom.
 	 */
 	actual = sugov_apply_response_time(actual, cpu);
-	actual = sugov_apply_dvfs_headroom(actual, cpu);
+	actual = sugov_apply_dvfs_headroom(actual, prev_util, cpu);
 	/* Actually we don't need to target the max performance */
 	if (actual < max)
 		max = actual;
@@ -358,11 +365,13 @@ unsigned long sugov_effective_cpu_perf(int cpu, unsigned long actual,
 static void sugov_get_util(struct sugov_cpu *sg_cpu, unsigned long boost)
 {
 	unsigned long min, max, util = cpu_util_cfs(sg_cpu->cpu);
+	unsigned long prev_util = sg_cpu->util_raw;
 
 	util = effective_cpu_util(sg_cpu->cpu, util, &min, &max);
 	util = max(util, boost);
 	sg_cpu->bw_min = min;
-	sg_cpu->util = sugov_effective_cpu_perf(sg_cpu->cpu, util, min, max);
+	sg_cpu->util_raw = util;
+	sg_cpu->util = sugov_effective_cpu_perf(sg_cpu->cpu, util, min, max, prev_util);
 }
 
 /**
